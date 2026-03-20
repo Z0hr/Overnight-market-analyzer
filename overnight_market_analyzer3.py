@@ -201,7 +201,7 @@ GLOBAL_MARKETS = {
 MIN_SIGNALS = 30
 
 # Thread pool size for parallel market data fetching.
-MAX_FETCH_WORKERS = 10
+MAX_FETCH_WORKERS = 5   # Reduced from 10 to ease Yahoo Finance rate limits
 
 # ---------------------------------------------------------------------------
 # DATA FETCHING & PROCESSING
@@ -259,6 +259,33 @@ def fetch_market_data(ticker: str, start_date, end_date) -> pd.DataFrame:
             return pd.DataFrame()
         st.warning(f"Could not fetch {ticker}: {e}")
         return pd.DataFrame()
+
+
+
+def fetch_with_retry(ticker: str, start_date, end_date, retries: int = 3) -> pd.DataFrame:
+    """
+    Wrapper around fetch_market_data with exponential backoff retry logic.
+
+    Used specifically for the user's stock ticker, where a rate-limit hit
+    should not show a misleading "check the ticker symbol" error.
+
+    Args:
+        ticker:     Yahoo Finance ticker symbol.
+        start_date: Start of the fetch window.
+        end_date:   End of the fetch window.
+        retries:    Maximum number of attempts before giving up.
+
+    Returns:
+        DataFrame on success, or empty DataFrame after all retries exhausted.
+    """
+    for attempt in range(1, retries + 1):
+        data = fetch_market_data(ticker, start_date, end_date)
+        if not data.empty:
+            return data
+        if attempt < retries:
+            wait = 2 ** attempt  # 2s, 4s, 8s ...
+            time.sleep(wait)
+    return pd.DataFrame()
 
 
 def fetch_all_market_data(
@@ -549,12 +576,13 @@ def main() -> None:
 
         # --- Step 1: fetch target stock (10% of bar) ---
         status_text.text(f"Fetching data for {stock_ticker}...")
-        stock_data = fetch_market_data(stock_ticker, start_date, end_date)
+        stock_data = fetch_with_retry(stock_ticker, start_date, end_date)
 
         if stock_data.empty:
             st.error(
-                f"❌ Could not fetch data for {stock_ticker}. "
-                "Please check the ticker symbol."
+                f"❌ Could not fetch data for **{stock_ticker}** after multiple attempts. "
+                "This is usually caused by Yahoo Finance rate limiting — please wait "
+                "30 seconds and try again. If the problem persists, double-check the ticker symbol."
             )
             return
 
