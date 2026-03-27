@@ -4,7 +4,7 @@ Overnight Global Market to US Stock Correlation Analyzer
 This application analyzes the conditional probability:
 If a global market rises/falls by >X% overnight, how often does a US stock close green?
 
-Author: Senior Python Developer & Quant Analyst
+Author: Z0hr
 Tech Stack: Streamlit, yfinance, pandas, plotly
 """
 
