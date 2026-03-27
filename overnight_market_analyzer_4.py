@@ -763,9 +763,7 @@ def main() -> None:
         > Markets with fewer than **{MIN_SIGNALS} signals** are excluded from Key Insights.
         """)
 
-# ---------------------------------------------------------------------------
 # ENTRY POINT
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()
