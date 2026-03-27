@@ -22,11 +22,9 @@ import yfinance as yf
 
 warnings.filterwarnings('ignore')
 
-# ---------------------------------------------------------------------------
 # CONFIGURATION & CONSTANTS
-# ---------------------------------------------------------------------------
 
-# 140 global markets with their Yahoo Finance tickers
+# 140+ global markets with their Yahoo Finance tickers
 GLOBAL_MARKETS = {
     # CRYPTOCURRENCIES (28 total)
     'Bitcoin': 'BTC-USD',
@@ -203,9 +201,7 @@ MIN_SIGNALS = 30
 # Thread pool size for parallel market data fetching.
 MAX_FETCH_WORKERS = 5   # Reduced from 10 to ease Yahoo Finance rate limits
 
-# ---------------------------------------------------------------------------
 # DATA FETCHING & PROCESSING
-# ---------------------------------------------------------------------------
 
 @st.cache_data(ttl=3600)
 def fetch_market_data(ticker: str, start_date, end_date) -> pd.DataFrame:
@@ -402,9 +398,7 @@ def analyze_market_correlation(
     success_rate = green / total * 100
     return total, green, success_rate
 
-# ---------------------------------------------------------------------------
 # VISUALISATION
-# ---------------------------------------------------------------------------
 
 def create_results_dataframe(results: Dict) -> pd.DataFrame:
     """
@@ -489,9 +483,7 @@ def create_bar_chart(results_df: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------------------------------------------------------------------------
 # STREAMLIT APP
-# ---------------------------------------------------------------------------
 
 def main() -> None:
     """Main Streamlit application entry point."""
@@ -511,7 +503,7 @@ def main() -> None:
     **Intraday Performance**: `Close > Open` (Green day)
     """)
 
-    st.sidebar.header("⚙️ Configuration")
+    st.sidebar.header("Configuration")
 
     stock_ticker = st.sidebar.text_input(
         "US Stock Ticker",
@@ -550,7 +542,7 @@ def main() -> None:
     direction_symbol = "📈" if direction == "Increase" else "📉"
     direction_label  = "rise" if direction == "Increase" else "fall"
 
-    # FIX: removed spurious f-string prefix (no interpolation in the label itself)
+    # FIX: removed spurious f-string prefix
     threshold = st.sidebar.number_input(
         "Overnight Move Threshold (%)",
         min_value=0.0,
@@ -574,7 +566,7 @@ def main() -> None:
         progress_bar = st.progress(0)
         status_text  = st.empty()
 
-        # --- Step 1: fetch target stock (10% of bar) ---
+        # Step 1: fetch target stock (10% of bar)
         status_text.text(f"Fetching data for {stock_ticker}...")
         stock_data = fetch_with_retry(stock_ticker, start_date, end_date)
 
@@ -588,17 +580,17 @@ def main() -> None:
 
         progress_bar.progress(10)
 
-        # --- Step 2: pre-compute stock green-day series ONCE ---
+        # Step 2: Pre-compute stock green-day series ONCE
         # Previously this was recomputed inside analyze_market_correlation on
-        # every iteration — 140 redundant calls for the same stock_data.
+        # every iteration: 140 redundant calls for the same stock_data.
         stock_green_days = calculate_intraday_move(stock_data)
 
-        # --- Step 3: fetch all market data in parallel (10% -> 70%) ---
+        # Step 3: fetch all market data in parallel (10% -> 70%)
         status_text.text("Fetching all market data in parallel…")
         all_market_data = fetch_all_market_data(GLOBAL_MARKETS, start_date, end_date)
         progress_bar.progress(70)
 
-        # --- Step 4: correlation analysis (70% -> 100%) ---
+        # Step 4: correlation analysis (70% -> 100%)
         results       = {}
         total_markets = len(GLOBAL_MARKETS)
 
@@ -623,10 +615,10 @@ def main() -> None:
         progress_bar.empty()
         status_text.empty()
 
-        st.success("✅ Analysis Complete!")
+        st.success("Analysis Complete!")
         results_df = create_results_dataframe(results)
 
-        st.header(f"📊 Summary Statistics — {direction_symbol} {direction} Mode")
+        st.header(f"Summary Statistics — {direction_symbol} {direction} Mode")
         col1, col2, col3, col4 = st.columns(4)
         with col1:
             st.metric("Analysis Period", f"{(end_date - start_date).days} days")
@@ -655,10 +647,10 @@ def main() -> None:
             hide_index=True,
         )
 
-        st.header("📈 Visual Analysis")
+        st.header("Visual Analysis")
         st.plotly_chart(create_bar_chart(results_df), use_container_width=True)
 
-        st.header("💡 Key Insights")
+        st.header("Key Insights")
 
         # FIX: was "> 0" here but "> 30" in the warning — now both use MIN_SIGNALS
         significant = results_df[results_df['Total Signals'] >= MIN_SIGNALS]
@@ -680,8 +672,8 @@ def main() -> None:
         """)
 
     else:
-        st.info("👈 Configure your parameters in the sidebar and click **Run Analysis** to begin!")
-        st.markdown("### 📖 How to Use This Tool")
+        st.info("Configure your parameters in the sidebar and click **Run Analysis** to begin!")
+        st.markdown("How to Use This Tool")
         st.markdown(f"""
         1. **Select a US Stock**: Enter the ticker symbol (e.g., VOO, SPY, AAPL)
         2. **Choose Date Range**: Select the analysis period
@@ -698,9 +690,7 @@ def main() -> None:
         > Markets with fewer than **{MIN_SIGNALS} signals** are excluded from Key Insights.
         """)
 
-# ---------------------------------------------------------------------------
 # ENTRY POINT
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     main()
