@@ -21,9 +21,7 @@ import yfinance as yf
 
 warnings.filterwarnings('ignore')
 
-# ---------------------------------------------------------------------------
 # CONFIGURATION & CONSTANTS
-# ---------------------------------------------------------------------------
 
 # 140 global markets with their Yahoo Finance tickers
 GLOBAL_MARKETS = {
@@ -196,12 +194,10 @@ GLOBAL_MARKETS = {
 }
 
 # Minimum signal count for a statistically meaningful result.
-# Used in both the Key Insights filter and the UI warning message.
+# Used in both the Key Insights filter and UI warning message.
 MIN_SIGNALS = 30
 
-# ---------------------------------------------------------------------------
 # DATA FETCHING & PROCESSING
-# ---------------------------------------------------------------------------
 
 def _download_ticker(ticker: str, start_date, end_date) -> pd.DataFrame:
     """
@@ -220,7 +216,7 @@ def _download_ticker(ticker: str, start_date, end_date) -> pd.DataFrame:
         DataFrame with flat, 1-D OHLC columns, or empty DataFrame on failure.
     """
     try:
-        # 5-day buffer guarantees a prior-close for the first requested day
+        # 5-day buffer guarantees a prior close for the first requested day
         # even across long weekends and public holidays.
         buffer_start = start_date - timedelta(days=5)
         data = yf.download(
@@ -475,9 +471,7 @@ def analyze_market_correlation(
     success_rate = green / total * 100
     return total, green, success_rate
 
-# ---------------------------------------------------------------------------
 # VISUALISATION
-# ---------------------------------------------------------------------------
 
 def create_results_dataframe(results: Dict) -> pd.DataFrame:
     """
@@ -562,9 +556,7 @@ def create_bar_chart(results_df: pd.DataFrame) -> go.Figure:
     )
     return fig
 
-# ---------------------------------------------------------------------------
 # STREAMLIT APP
-# ---------------------------------------------------------------------------
 
 def main() -> None:
     """Main Streamlit application entry point."""
@@ -647,7 +639,7 @@ def main() -> None:
         progress_bar = st.progress(0)
         status_text  = st.empty()
 
-        # --- Step 1: fetch target stock (10% of bar) ---
+        # Step 1: fetch target stock (10% of bar)
         status_text.text(f"Fetching data for {stock_ticker}...")
         stock_data = fetch_with_retry(stock_ticker, start_date, end_date)
 
@@ -661,17 +653,17 @@ def main() -> None:
 
         progress_bar.progress(10)
 
-        # --- Step 2: pre-compute stock green-day series ONCE ---
+        # Step 2: pre-compute stock green-day series ONCE
         # Previously this was recomputed inside analyze_market_correlation on
         # every iteration — 140 redundant calls for the same stock_data.
         stock_green_days = calculate_intraday_move(stock_data)
 
-        # --- Step 3: fetch all market data via bulk download (10% -> 70%) ---
+        # Step 3: fetch all market data via bulk download (10% -> 70%)
         status_text.text("Fetching all market data (bulk download)…")
         all_market_data = fetch_all_market_data(start_date, end_date)
         progress_bar.progress(70)
 
-        # --- Step 4: correlation analysis (70% -> 100%) ---
+        # Step 4: correlation analysis (70% -> 100%)
         results       = {}
         total_markets = len(GLOBAL_MARKETS)
 
